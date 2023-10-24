@@ -12,13 +12,13 @@ Special thanks goes to the following for the basis of this modified code:
 
 - [https://github.com/RalfZim/venus.dbus-fronius-smartmeter](https://github.com/RalfZim/venus.dbus-fronius-smartmeter)
 - [https://github.com/victronenergy/velib_python](https://github.com/victronenergy/velib_python)
-- [https://github.com/SirUli/FroniusSmartmeter] (https://github.com/SirUli/FroniusSmartmeter)
-- [https://github.com/ayasystems/dbus-fronius-smart-meter/tree/main] (https://github.com/ayasystems/dbus-fronius-smart-meter/tree/main)
-- [https://github.com/xeniter/eww_ewerk_wels_smartmeter_readout] (https://github.com/xeniter/eww_ewerk_wels_smartmeter_readout)
+- [https://github.com/SirUli/FroniusSmartmeter](https://github.com/SirUli/FroniusSmartmeter)
+- [https://github.com/ayasystems/dbus-fronius-smart-meter/tree/main](https://github.com/ayasystems/dbus-fronius-smart-meter/tree/main)
+- [https://github.com/xeniter/eww_ewerk_wels_smartmeter_readout](https://github.com/xeniter/eww_ewerk_wels_smartmeter_readout)
 
 ### Configuration
 
-In the Python file, you should put the IP of your DLMS/ESP8266 device that hosts the DLMS readout. In my setup, it is the IP of the ESP8266, which gets the data from the Siemens IM250 Smart Meter via the DLMS connection between them. (see https://github.com/xeniter/eww_ewerk_wels_smartmeter_readout)
+In the Python file, you should put the IP of your DLMS/ESP8266 device that hosts the DLMS readout. In my setup, it is the IP of the ESP8266, which gets the data from the Siemens IM350 Smart Meter via the DLMS connection between them. (see https://github.com/xeniter/eww_ewerk_wels_smartmeter_readout)
 
 ### Installation
 

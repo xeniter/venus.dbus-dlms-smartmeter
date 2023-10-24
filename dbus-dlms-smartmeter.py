@@ -137,20 +137,30 @@ class DbusDummyService:
       
       if SMARTMETER_CURRENT_WIRK_EXPORT > 0:
         meter_consumption = -SMARTMETER_CURRENT_WIRK_EXPORT
-        
-        
-      self._dbusservice['/Ac/Power'] = meter_consumption # positive: consumption, negative: feed into grid
-      self._dbusservice['/Ac/L1/Voltage'] = 0
-      self._dbusservice['/Ac/L2/Voltage'] = 0
-      self._dbusservice['/Ac/L3/Voltage'] = 0
-      self._dbusservice['/Ac/L1/Current'] = 0
-      self._dbusservice['/Ac/L2/Current'] = 0
-      self._dbusservice['/Ac/L3/Current'] = 0
-      self._dbusservice['/Ac/L1/Power'] = 0
-      self._dbusservice['/Ac/L2/Power'] =  0
-      self._dbusservice['/Ac/L3/Power'] = 0
-      self._dbusservice['/Ac/Energy/Forward'] = 0 # TODO
-      self._dbusservice['/Ac/Energy/Reverse'] = 0 # TODO
+
+      self._dbusservice['/Ac/Power'] = meter_consumption
+      
+      self._dbusservice['/Ac/L1/Voltage'] = None
+      self._dbusservice['/Ac/L2/Voltage'] = None
+      self._dbusservice['/Ac/L3/Voltage'] = None
+      self._dbusservice['/Ac/L1/Current'] = None
+      self._dbusservice['/Ac/L2/Current'] = None
+      self._dbusservice['/Ac/L3/Current'] = None
+      self._dbusservice['/Ac/L1/Power'] = meter_consumption
+      self._dbusservice['/Ac/L2/Power'] = None
+      self._dbusservice['/Ac/L3/Power'] = None
+
+      self._dbusservice['/Ac/L1/Energy/Forward'] = SMARTMETER_WIRK_IMPORT
+      self._dbusservice['/Ac/L1/Energy/Reverse'] = SMARTMETER_WIRK_EXPORT
+      
+      self._dbusservice['/Ac/L2/Energy/Forward'] = None
+      self._dbusservice['/Ac/L2/Energy/Reverse'] = None
+
+      self._dbusservice['/Ac/L3/Energy/Forward'] = None            
+      self._dbusservice['/Ac/L3/Energy/Reverse'] = None
+
+      self._dbusservice['/Ac/Energy/Forward'] = SMARTMETER_WIRK_IMPORT
+      self._dbusservice['/Ac/Energy/Reverse'] = SMARTMETER_WIRK_EXPORT
       
       logging.info("House Consumption: {:.0f}".format(meter_consumption))
     except Exception as e:
@@ -190,24 +200,41 @@ def main():
   # Have a mainloop, so we can send/receive asynchronous calls to and from dbus
   DBusGMainLoop(set_as_default=True)
 
+  #formatting 
+  _kwh = lambda p, v: (str(round(v, 2)) + ' KWh')
+  _a = lambda p, v: (str(round(v, 1)) + ' A')
+  _w = lambda p, v: (str(round(v, 1)) + ' W')
+  _v = lambda p, v: (str(round(v, 1)) + ' V')
+
   pvac_output = DbusDummyService(
     servicename='com.victronenergy.grid.mymeter',
     deviceinstance=0,
     paths={
-      '/Ac/Power': {'initial': 0},
-      '/Ac/L1/Voltage': {'initial': 0},
-      '/Ac/L2/Voltage': {'initial': 0},
-      '/Ac/L3/Voltage': {'initial': 0},
-      '/Ac/L1/Current': {'initial': 0},
-      '/Ac/L2/Current': {'initial': 0},
-      '/Ac/L3/Current': {'initial': 0},
-      '/Ac/L1/Power': {'initial': 0},
-      '/Ac/L2/Power': {'initial': 0},
-      '/Ac/L3/Power': {'initial': 0},
-      '/Ac/Energy/Forward': {'initial': 0}, # energy bought from the grid
-      '/Ac/Energy/Reverse': {'initial': 0}, # energy sold to the grid
-      path_UpdateIndex: {'initial': 0},
-    })
+          '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh}, # energy bought from the grid
+          '/Ac/Energy/Reverse': {'initial': 0, 'textformat': _kwh}, # energy sold to the grid
+          
+          '/Ac/Power': {'initial': 0, 'textformat': _w},
+          '/Ac/Current': {'initial': 0, 'textformat': _a},
+          '/Ac/Voltage': {'initial': 0, 'textformat': _v},
+          
+          '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
+          '/Ac/L2/Voltage': {'initial': None, 'textformat': _v},
+          '/Ac/L3/Voltage': {'initial': None, 'textformat': _v},
+          '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
+          '/Ac/L2/Current': {'initial': None, 'textformat': _a},
+          '/Ac/L3/Current': {'initial': None, 'textformat': _a},
+          '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
+          '/Ac/L2/Power': {'initial': None, 'textformat': _w},
+          '/Ac/L3/Power': {'initial': None, 'textformat': _w},
+
+          '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+          '/Ac/L2/Energy/Forward': {'initial': None, 'textformat': _kwh},
+          '/Ac/L3/Energy/Forward': {'initial': None, 'textformat': _kwh},
+          '/Ac/L1/Energy/Reverse': {'initial': 0, 'textformat': _kwh},
+          '/Ac/L2/Energy/Reverse': {'initial': None, 'textformat': _kwh},
+          '/Ac/L3/Energy/Reverse': {'initial': None, 'textformat': _kwh},
+          path_UpdateIndex: {'initial': 0},
+        })
 
   logging.info('Connected to dbus, and switching over to gobject.MainLoop() (= event based)')
   mainloop = gobject.MainLoop()

@@ -13,6 +13,7 @@ Special thanks goes to the following for the basis of this modified code:
 - [https://github.com/RalfZim/venus.dbus-fronius-smartmeter](https://github.com/RalfZim/venus.dbus-fronius-smartmeter)
 - [https://github.com/victronenergy/velib_python](https://github.com/victronenergy/velib_python)
 - [https://github.com/SirUli/FroniusSmartmeter] (https://github.com/SirUli/FroniusSmartmeter)
+- [https://github.com/ayasystems/dbus-fronius-smart-meter/tree/main] (https://github.com/ayasystems/dbus-fronius-smart-meter/tree/main)
 - [https://github.com/xeniter/eww_ewerk_wels_smartmeter_readout] (https://github.com/xeniter/eww_ewerk_wels_smartmeter_readout)
 
 ### Configuration
@@ -20,6 +21,12 @@ Special thanks goes to the following for the basis of this modified code:
 In the Python file, you should put the IP of your DLMS/ESP8266 device that hosts the DLMS readout. In my setup, it is the IP of the ESP8266, which gets the data from the Siemens IM250 Smart Meter via the DLMS connection between them. (see https://github.com/xeniter/eww_ewerk_wels_smartmeter_readout)
 
 ### Installation
+
+0. Install required python packages
+
+   - `opkg update`
+   - `opkg install python3-pip`
+   - `pip3 install gurux-dlms`
 
 1. Copy the files to the /data folder on your venus:
 
@@ -72,6 +79,22 @@ If the script stops with the message
 `dbus.exceptions.NameExistsException: Bus name already exists: com.victronenergy.grid"`
 
 it means that the service is still running or another service is using that bus name.
+
+Stop service
+
+`svc -d /service/dbus-dlms-smart-meter`
+
+Start service
+
+`svc -u /service/dbus-dlms-smart-meter`
+
+Reload data
+
+`/data/dbus-dlms-smart-meter/restart.sh`
+
+View log file
+
+`cat /data/dbus-dlms-smart-meter/current.log`
 
 #### Restart the script
 

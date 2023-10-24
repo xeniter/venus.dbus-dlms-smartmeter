@@ -14,7 +14,12 @@ import platform
 import logging
 import sys
 import os
+import socket
 import configparser # for config/ini file
+import binascii
+import re
+import xml.etree.ElementTree as ET
+
 import _thread as thread   # for daemon = True  / Python 3.x
 
 # our own packages
@@ -39,20 +44,14 @@ class DbusDummyService:
     logging.debug("%s /DeviceInstance = %d" % (servicename, deviceinstance))
 
     # CONFIG readout
-    config = configparser.ConfigParser()
-    config.read("%s/config.ini" % (os.path.dirname(os.path.realpath(__file__))))
+    self._config = configparser.ConfigParser()
+    self._config.read("%s/config.ini" % (os.path.dirname(os.path.realpath(__file__))))
 
     logging.info(f"DLMS config:")
-    logging.info(f"IP: {config['DLMS']['IP']}")
-    logging.info(f"Port: {config['DLMS']['PORT']}")
-    logging.info(f"AES KEY: {config['DLMS']['AES_KEY']}")
-    logging.info(f"intervalMs: {config['DLMS']['intervalMs']}")
-
-
-    # Create a TCP/IP socket
-    self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_address = (ESP8266_IP, ESP8266_PORT)
-    self._sock.connect(server_address)
+    logging.info(f"IP: {self._config['DLMS']['IP']}")
+    logging.info(f"Port: {self._config['DLMS']['PORT']}")
+    logging.info(f"AES KEY: {self._config['DLMS']['AES_KEY']}")
+    logging.info(f"intervalMs: {self._config['DLMS']['intervalMs']}")    
 
     # Create the management objects, as specified in the ccgx dbus-api document
     self._dbusservice.add_path('/Mgmt/ProcessName', __file__)
@@ -71,7 +70,7 @@ class DbusDummyService:
       self._dbusservice.add_path(
         path, settings['initial'], writeable=True, onchangecallback=self._handlechangedvalue)
 
-    gobject.timeout_add(200, self._update) # pause 200ms before the next request
+    gobject.timeout_add(int(self._config['DLMS']['intervalMs']), self._update)
 
   def _update(self):
     try:      
@@ -81,11 +80,18 @@ class DbusDummyService:
       readout=b''
       data=b''
 
+      # Create a TCP/IP socket
+      sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      server_address = (self._config['DLMS']['IP'], int(self._config['DLMS']['PORT']))
+      sock.connect(server_address)
+
       while True:
-          readout = self._sock.recv(1024)                                
+          readout = sock.recv(1024)                                
           data += readout
           if readout == b'':
-              break      
+              break
+
+      sock.close()     
 
       logging.debug(len(data))
       data = binascii.hexlify(data)
@@ -97,7 +103,7 @@ class DbusDummyService:
       decrypt = GXDLMSTranslator(TranslatorOutputType.SIMPLE_XML)
       decrypt.comments = True
       decrypt.security = enums.Security.ENCRYPTION
-      decrypt.blockCipherKey =GXByteBuffer.hexToBytes(DLMS_AES_KEY)
+      decrypt.blockCipherKey = GXByteBuffer.hexToBytes(self._config['DLMS']['AES_KEY'])
 
       xml = decrypt.messageToXml(GXByteBuffer.hexToBytes(data))
       # remove comments in lines to be able to extract multi lines comment next
@@ -112,17 +118,10 @@ class DbusDummyService:
       decrypted_xml = '\n'.join(commented_xml[1].split('\n')[1:-1])            
 
       tree = ET.ElementTree(ET.fromstring(decrypted_xml))
-      
-      labels = ['Wirkenergie-Import (+A)', 'Wirkenergieexport (-A)', 'Blindenergieimport (+R) (QI+QII)', 'Blindenergieexport (-R) (QIII+QIV)', 'Momentane Wirkenergie Importleistung (+A)', 'Momentane Wirkenergie Exportleistung (-A)']
-      t = Texttable()
-      i=0
+          
       values = []
-
       for elem in tree.iter('UInt32'):
-          t.add_row([labels[i], f"{int(elem.attrib['Value'], 16):,}"])
-
           values.append(int(elem.attrib['Value'], 16))
-          i=i+1
       
       SMARTMETER_WIRK_IMPORT=values[0]
       SMARTMETER_WIRK_EXPORT=values[1]
@@ -154,8 +153,9 @@ class DbusDummyService:
       self._dbusservice['/Ac/Energy/Reverse'] = 0 # TODO
       
       logging.info("House Consumption: {:.0f}".format(meter_consumption))
-    except:
-      logging.warn("Could not read from DLMS data from the esp8266!")
+    except Exception as e:
+      logging.error(e)
+      logging.warning("Could not read from DLMS data from the esp8266!")
       self._dbusservice['/Ac/Power'] = 0  # TODO: any better idea to signal an issue?
       
     # increment UpdateIndex - to show that new data is available
@@ -183,6 +183,8 @@ def main():
                             ])
 
   thread.daemon = True # allow the program to quit
+
+  logging.info("started...")
 
   from dbus.mainloop.glib import DBusGMainLoop
   # Have a mainloop, so we can send/receive asynchronous calls to and from dbus

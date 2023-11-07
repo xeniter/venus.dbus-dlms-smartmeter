@@ -56,6 +56,10 @@ In the Python file, you should put the IP of your DLMS/ESP8266 device that hosts
 
    The daemon-tools should automatically start this service within seconds.
 
+### Venus OS Upgrade
+
+You must repeat installation of python packages from Installation step 0
+
 ### Debugging
 
 You can check the status of the service with svstat:
